@@ -1,4 +1,4 @@
-package services
+package event_executor
 
 type TopicExchangeData struct {
 	Topic        string

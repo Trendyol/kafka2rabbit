@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/kafka2rabbit/pkg/rabbit"
-	"github.com/kafka2rabbit/services"
 	"github.com/streadway/amqp"
 	"time"
 )
@@ -13,12 +12,12 @@ import (
 const retryTopic = "%s_RETRY"
 
 type kafka2RabbitNormal struct {
-	storageData    services.TopicExchangeData
+	storageData    TopicExchangeData
 	rabbitProducer rabbit.Producer
 	kafkaProducer  sarama.SyncProducer
 }
 
-func NormalBehavioral(kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.Producer, data services.TopicExchangeData) Executor {
+func NormalBehavioral(kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.Producer, data TopicExchangeData) Executor {
 	return &kafka2RabbitNormal{
 		storageData:    data,
 		kafkaProducer:  kafkaProducer,
@@ -46,7 +45,7 @@ func (k *kafka2RabbitNormal) sendToRetryTopic(message *sarama.ConsumerMessage) (
 	})
 }
 
-func execute(ctx context.Context, message *sarama.ConsumerMessage, publisher rabbit.Producer, storageData services.TopicExchangeData) error {
+func execute(ctx context.Context, message *sarama.ConsumerMessage, publisher rabbit.Producer, storageData TopicExchangeData) error {
 	brokerChannel, err := publisher.CreateConfirmedChannel(ctx)
 	if err != nil {
 		return fmt.Errorf("confirmation channel has an error , err:%v", err)

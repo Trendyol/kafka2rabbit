@@ -13,11 +13,11 @@ import (
 type eventHandler struct {
 	publisher      rabbit.Producer
 	producer       sarama.SyncProducer
-	storageData    TopicExchangeData
+	storageData    event_executor.TopicExchangeData
 	slackApiClient slack_api_client.Client
 }
 
-func NewEventHandler(publisher rabbit.Producer, data TopicExchangeData, producer sarama.SyncProducer, client slack_api_client.Client) kafka.EventHandler {
+func NewEventHandler(publisher rabbit.Producer, data event_executor.TopicExchangeData, producer sarama.SyncProducer, client slack_api_client.Client) kafka.EventHandler {
 	return &eventHandler{
 		publisher:      publisher,
 		storageData:    data,

@@ -9,10 +9,11 @@ import (
 	"github.com/kafka2rabbit/pkg/rabbit"
 	"github.com/kafka2rabbit/pkg/rest"
 	"github.com/kafka2rabbit/services"
+	"github.com/kafka2rabbit/services/event_executor"
 	"log"
 )
 
-var TopicConfigurations = []services.TopicExchangeData{
+var TopicConfigurations = []event_executor.TopicExchangeData{
 	{
 		Topic:        "kafka topic",
 		Exchange:     "rabbit exchange",
@@ -48,7 +49,7 @@ func initializeListeners() error {
 	return nil
 }
 
-func runKafkaToRabbitListener(data services.TopicExchangeData) error {
+func runKafkaToRabbitListener(data event_executor.TopicExchangeData) error {
 	config := kafka.ConnectionParameters{
 		ConsumerGroupID: data.Topic + data.Exchange,
 		ClientID:        "kafka2rabbit",

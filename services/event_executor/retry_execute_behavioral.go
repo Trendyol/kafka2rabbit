@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/kafka2rabbit/pkg/rabbit"
-	"github.com/kafka2rabbit/services"
 	"time"
 )
 
 const errorTopic = "%s_ERROR"
 
 type kafka2RabbitRetry struct {
-	storageData    services.TopicExchangeData
+	storageData    TopicExchangeData
 	rabbitProducer rabbit.Producer
 	kafkaProducer  sarama.SyncProducer
 }
 
-func RetryBehavioral(kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.Producer, storageData services.TopicExchangeData) Executor {
+func RetryBehavioral(kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.Producer, storageData TopicExchangeData) Executor {
 	return &kafka2RabbitRetry{
 		kafkaProducer:  kafkaProducer,
 		rabbitProducer: rabbitProducer,
