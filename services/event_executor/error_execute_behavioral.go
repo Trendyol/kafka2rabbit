@@ -20,7 +20,7 @@ func (k *kafka2Rabbit) Execute(message *sarama.ConsumerMessage) error {
 	return nil
 }
 
-func ErrorBehavioral(client slack_api_client.Client) Executor {
+func NewErrorExecutor(client slack_api_client.Client) Executor {
 	return &kafka2Rabbit{
 		client: client,
 	}

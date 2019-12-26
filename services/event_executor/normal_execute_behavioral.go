@@ -17,7 +17,7 @@ type kafka2RabbitNormal struct {
 	kafkaProducer  sarama.SyncProducer
 }
 
-func NormalBehavioral(kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.Producer, data TopicExchangeData) Executor {
+func NewNormalExecutor(kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.Producer, data TopicExchangeData) Executor {
 	return &kafka2RabbitNormal{
 		storageData:    data,
 		kafkaProducer:  kafkaProducer,
@@ -28,25 +28,23 @@ func NormalBehavioral(kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.P
 func (k *kafka2RabbitNormal) Execute(message *sarama.ConsumerMessage) (err error) {
 	ctx := context.Background()
 	if err = execute(ctx, message, k.rabbitProducer, k.storageData); err != nil {
-		_, _, err = k.sendToRetryTopic(message)
-		if err != nil {
+		if err := k.sendToRetryTopic(message); err != nil {
 			fmt.Printf("Have an error occurred while publishing to retry topic: %+v , err:%+v", fmt.Sprintf(retryTopic, message.Topic), err)
 		}
-	} else {
-		fmt.Printf("Message was published successfully, message: %+v", string(message.Value))
 	}
 	return err
 }
 
-func (k *kafka2RabbitNormal) sendToRetryTopic(message *sarama.ConsumerMessage) (int32, int64, error) {
-	return k.kafkaProducer.SendMessage(&sarama.ProducerMessage{
+func (k *kafka2RabbitNormal) sendToRetryTopic(message *sarama.ConsumerMessage) error {
+	_, _, err := k.kafkaProducer.SendMessage(&sarama.ProducerMessage{
 		Topic: fmt.Sprintf(retryTopic, message.Topic),
 		Value: sarama.StringEncoder(message.Value),
 	})
+	return err
 }
 
-func execute(ctx context.Context, message *sarama.ConsumerMessage, publisher rabbit.Producer, storageData TopicExchangeData) error {
-	brokerChannel, err := publisher.CreateConfirmedChannel(ctx)
+func execute(ctx context.Context, message *sarama.ConsumerMessage, producer rabbit.Producer, storageData TopicExchangeData) error {
+	brokerChannel, err := producer.CreateConfirmedChannel(ctx)
 	if err != nil {
 		return fmt.Errorf("confirmation channel has an error , err:%v", err)
 	}
@@ -54,7 +52,7 @@ func execute(ctx context.Context, message *sarama.ConsumerMessage, publisher rab
 		_ = brokerChannel.Close(ctx)
 	}()
 	confirm := brokerChannel.NotifyPublish(make(chan amqp.Confirmation, 1))
-	err = publisher.ProduceWithChannel(ctx, storageData.RoutingKey, storageData.Exchange, string(message.Value), 0, brokerChannel)
+	err = producer.ProduceWithChannel(ctx, storageData.RoutingKey, storageData.Exchange, string(message.Value), 0, brokerChannel)
 	if err != nil {
 		return fmt.Errorf("message was not published to exchange , err:%v", err)
 	}

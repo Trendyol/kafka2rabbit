@@ -11,6 +11,7 @@ import (
 	"github.com/kafka2rabbit/services"
 	"github.com/kafka2rabbit/services/event_executor"
 	"log"
+	"os"
 )
 
 var TopicConfigurations = []event_executor.TopicExchangeData{
@@ -23,7 +24,7 @@ var TopicConfigurations = []event_executor.TopicExchangeData{
 }
 
 func main() {
-	appPort := "8080"
+	appPort := os.Getenv("APP_PORT")
 	if err := initializeListeners(); err != nil {
 		return
 	}
@@ -53,16 +54,16 @@ func runKafkaToRabbitListener(data event_executor.TopicExchangeData) error {
 	config := kafka.ConnectionParameters{
 		ConsumerGroupID: data.Topic + data.Exchange,
 		ClientID:        "kafka2rabbit",
-		Brokers:         "brokers",
-		KafkaUsername:   "username",
-		KafkaPassword:   "password",
-		Version:         "version",
+		Brokers:         os.Getenv("BROKERS"),
+		KafkaUsername:   os.Getenv("USERNAME"),
+		KafkaPassword:   os.Getenv("PASSWORD"),
+		Version:         os.Getenv("KAFKA_VERSION"),
 		Topic:           data.Topic,
 		FromBeginning:   true,
 	}
 
 	connParameters := rabbit.ConnectionParameters{
-		ConnectionString: "amqp://user:pass@addr:port",
+		ConnectionString: os.Getenv("RABBIT_ADDRESS"),
 		PrefetchCount:    15,
 		RetryCount:       3,
 		RetryInterval:    300,
@@ -85,11 +86,22 @@ func runKafkaToRabbitListener(data event_executor.TopicExchangeData) error {
 		return err
 	}
 	client := rest.NewClient()
-	slackApiClient := slack_api_client.NewClient("slac_url",
-		"slack username",
-		"slack channel",
+	slackApiClient := slack_api_client.NewClient(os.Getenv("SLACK_URL"),
+		os.Getenv("SLACK_USERNAME"),
+		os.Getenv("SLACK_CHANNEL"),
 		client)
-	eventHandler := services.NewEventHandler(rabbitProducer, data, kafkaProducer, slackApiClient)
+	errorExecutor := event_executor.NewErrorExecutor(slackApiClient)
+	retryExecutor := event_executor.NewRetryExecutor(2, 3,
+		kafkaProducer,
+		rabbitProducer,
+		data,
+	)
+	normalExecutor := event_executor.NewNormalExecutor(kafkaProducer, rabbitProducer, data)
+	eventHandler := services.NewEventHandler(
+		retryExecutor,
+		normalExecutor,
+		errorExecutor,
+	)
 	consumer, err := kafka.NewConsumer(config)
 	if err != nil {
 		return err

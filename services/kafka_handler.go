@@ -3,26 +3,25 @@ package services
 import (
 	"fmt"
 	"github.com/Shopify/sarama"
-	slack_api_client "github.com/kafka2rabbit/pkg/clients"
 	"github.com/kafka2rabbit/pkg/kafka"
-	"github.com/kafka2rabbit/pkg/rabbit"
 	"github.com/kafka2rabbit/services/event_executor"
 	"strings"
 )
 
 type eventHandler struct {
-	publisher      rabbit.Producer
-	producer       sarama.SyncProducer
-	storageData    event_executor.TopicExchangeData
-	slackApiClient slack_api_client.Client
+	retryExecutor  event_executor.Executor
+	errorExecutor  event_executor.Executor
+	normalExecutor event_executor.Executor
 }
 
-func NewEventHandler(publisher rabbit.Producer, data event_executor.TopicExchangeData, producer sarama.SyncProducer, client slack_api_client.Client) kafka.EventHandler {
+func NewEventHandler(
+	retryExecutor event_executor.Executor,
+	normalExecutor event_executor.Executor,
+	errorExecutor event_executor.Executor) kafka.EventHandler {
 	return &eventHandler{
-		publisher:      publisher,
-		storageData:    data,
-		producer:       producer,
-		slackApiClient: client,
+		retryExecutor:  retryExecutor,
+		normalExecutor: normalExecutor,
+		errorExecutor:  errorExecutor,
 	}
 }
 
@@ -55,11 +54,11 @@ func (e *eventHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim s
 
 func (e *eventHandler) decideBehavioral(eventExecutor *event_executor.EventExecutor, claim sarama.ConsumerGroupClaim) {
 	if isRetryTopic(claim) {
-		eventExecutor.SetStrategy(event_executor.RetryBehavioral(e.producer, e.publisher, e.storageData))
+		eventExecutor.SetStrategy(e.retryExecutor)
 	} else if isErrorTopic(claim) {
-		eventExecutor.SetStrategy(event_executor.ErrorBehavioral(e.slackApiClient))
+		eventExecutor.SetStrategy(e.errorExecutor)
 	} else {
-		eventExecutor.SetStrategy(event_executor.NormalBehavioral(e.producer, e.publisher, e.storageData))
+		eventExecutor.SetStrategy(e.normalExecutor)
 	}
 }
 

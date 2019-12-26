@@ -14,38 +14,42 @@ type kafka2RabbitRetry struct {
 	storageData    TopicExchangeData
 	rabbitProducer rabbit.Producer
 	kafkaProducer  sarama.SyncProducer
+	retryInterval  int
+	retryCount     int
 }
 
-func RetryBehavioral(kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.Producer, storageData TopicExchangeData) Executor {
+func NewRetryExecutor(retryInterval, retryCount int, kafkaProducer sarama.SyncProducer, rabbitProducer rabbit.Producer, storageData TopicExchangeData) Executor {
 	return &kafka2RabbitRetry{
 		kafkaProducer:  kafkaProducer,
 		rabbitProducer: rabbitProducer,
 		storageData:    storageData,
+		retryCount:     retryCount,
+		retryInterval:  retryInterval,
 	}
 }
 
 func (k *kafka2RabbitRetry) Execute(message *sarama.ConsumerMessage) (err error) {
 	ctx := context.Background()
-	for i := 0; i < 3; i++ {
+	for i := 0; i < k.retryCount; i++ {
 		err = execute(ctx, message, k.rabbitProducer, k.storageData)
 		if err == nil {
 			break
 		}
-		time.Sleep(3 * time.Second)
+		time.Sleep(time.Duration(k.retryInterval) * time.Second)
 	}
 	if err != nil {
-		fmt.Printf("Message is not published to topic: %+v so is routing to error topic: %+v, message: %+v", message.Topic, fmt.Sprintf(errorTopic, message.Topic))
-		_, _, err = k.sendToErrorTopic(message)
-		if err != nil {
+		fmt.Printf("Message is not published to topic: %+v so is routing to error topic: %+v", message.Topic, fmt.Sprintf(errorTopic, message.Topic))
+		if err := k.sendToErrorTopic(message); err != nil {
 			fmt.Printf("Message is not published to error topic: %+v", fmt.Sprintf(errorTopic, message.Topic))
 		}
 	}
 	return err
 }
 
-func (k *kafka2RabbitRetry) sendToErrorTopic(message *sarama.ConsumerMessage) (int32, int64, error) {
-	return k.kafkaProducer.SendMessage(&sarama.ProducerMessage{
+func (k *kafka2RabbitRetry) sendToErrorTopic(message *sarama.ConsumerMessage) error {
+	_, _, err := k.kafkaProducer.SendMessage(&sarama.ProducerMessage{
 		Topic: fmt.Sprintf(errorTopic, message.Topic),
 		Value: sarama.StringEncoder(message.Value),
 	})
+	return err
 }

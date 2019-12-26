@@ -52,6 +52,7 @@ func NewConsumer(connectionParams ConnectionParameters) (Consumer, error) {
 	if connectionParams.FromBeginning {
 		config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	}
+	config.Metadata.Retry.Max = 1
 	config.Metadata.Retry.Backoff = 5 * time.Second
 
 	cg, err := sarama.NewConsumerGroup(strings.Split(connectionParams.Brokers, ","), connectionParams.ConsumerGroupID, config)
@@ -77,7 +78,7 @@ func (c *kafkaConsumer) Subscribe(handler EventHandler) {
 			}
 
 			if ctx.Err() != nil {
-				panic(ctx.Err())
+				fmt.Println(ctx.Err())
 				return
 			}
 		}
