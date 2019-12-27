@@ -17,8 +17,6 @@ type Container struct {
 	port             int
 }
 
-const username = "sa"
-const password = "Sa123456"
 
 func NewContainer(image string) *Container {
 	var exposedPort []string
@@ -54,10 +52,6 @@ func (c *Container) Run() {
 	if isRunningOnOSX() {
 		c.ip = "127.0.0.1"
 	}
-}
-
-func (c *Container) Address() string {
-	return fmt.Sprintf("amqp://%s:%s@%s:5672", username, password, c.ip)
 }
 
 func (c *Container) Ip() string {
