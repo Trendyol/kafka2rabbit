@@ -29,7 +29,7 @@ func (k *kafka2RabbitNormal) Execute(message *sarama.ConsumerMessage) (err error
 	ctx := context.Background()
 	if err = execute(ctx, message, k.rabbitProducer, k.storageData); err != nil {
 		if err := k.sendToRetryTopic(message); err != nil {
-			fmt.Printf("Have an error occurred while publishing to retry topic: %+v , err:%+v", fmt.Sprintf(retryTopic, message.Topic), err)
+			fmt.Printf("Have an error occurred while publishing to retryTopicPrefix topic: %+v , err:%+v", fmt.Sprintf(retryTopic, message.Topic), err)
 		}
 	}
 	return err

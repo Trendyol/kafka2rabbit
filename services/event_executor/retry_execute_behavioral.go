@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/kafka2rabbit/pkg/rabbit"
+	"strings"
 	"time"
 )
 
-const errorTopic = "%s_ERROR"
+const retryTopicPrefix = "RETRY"
+const errorTopicPrefix = "ERROR"
 
 type kafka2RabbitRetry struct {
 	storageData    TopicExchangeData
@@ -38,15 +40,16 @@ func (k *kafka2RabbitRetry) Execute(message *sarama.ConsumerMessage) (err error)
 		time.Sleep(time.Duration(k.retryInterval) * time.Second)
 	}
 	if err != nil {
-		fmt.Printf("Message is not published to topic: %+v so is routing to error topic: %+v", message.Topic, fmt.Sprintf(errorTopic, message.Topic))
+		fmt.Printf("Message is not published to topic: %+v so is routing to error topic: %+v", message.Topic, fmt.Sprintf(errorTopicPrefix, message.Topic))
 		if err := k.sendToErrorTopic(message); err != nil {
-			fmt.Printf("Message is not published to error topic: %+v", fmt.Sprintf(errorTopic, message.Topic))
+			fmt.Printf("Message is not published to error topic: %+v", fmt.Sprintf(errorTopicPrefix, message.Topic))
 		}
 	}
 	return err
 }
 
 func (k *kafka2RabbitRetry) sendToErrorTopic(message *sarama.ConsumerMessage) error {
+	errorTopic := strings.Replace(message.Topic, retryTopicPrefix, errorTopicPrefix, 0)
 	_, _, err := k.kafkaProducer.SendMessage(&sarama.ProducerMessage{
 		Topic: fmt.Sprintf(errorTopic, message.Topic),
 		Value: sarama.StringEncoder(message.Value),

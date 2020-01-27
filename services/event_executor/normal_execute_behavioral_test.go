@@ -130,7 +130,7 @@ var _ = Describe("NormalExecuteBehavioral", func() {
 			message = rabbitApi.GetMessage(queueName)
 
 		})
-		It("should consumed message value equals to expected payload from retry topic", func() {
+		It("should consumed message value equals to expected payload from retryTopicPrefix topic", func() {
 			Expect(string(message)).Should(Equal(expectedPayload))
 		})
 	})

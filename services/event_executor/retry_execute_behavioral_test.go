@@ -17,7 +17,7 @@ var _ = Describe("RetryExecuteBehavioral", func() {
 			message     []byte
 			topic       = "normal_RETRY"
 			exchange    = "exchange2"
-			queueName   = "retry"
+			queueName   = "retryTopicPrefix"
 			routingKey  = "routing"
 			storageData = event_executor.TopicExchangeData{
 				Topic:        topic,
@@ -129,7 +129,7 @@ var _ = Describe("RetryExecuteBehavioral", func() {
 
 			message = rabbitApi.GetMessage(queueName)
 		})
-		It("should consumed message value equals to expected payload from retry topic", func() {
+		It("should consumed message value equals to expected payload from retryTopicPrefix topic", func() {
 			Expect(string(message)).Should(Equal(expectedPayload))
 		})
 	})
