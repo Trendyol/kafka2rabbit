@@ -6,9 +6,9 @@
 	BROKERS :  kafka cluster address with port (ex: 1.0.0.1:9092,1.0.0.2:9092)
 	USERNAME : kafka username
 	PASSWORD : kafka password
-	KAFKA_VERSION : kafka version (ex:2.0.0)
-	RABBIT_ADDRESS : rabbit address (ex amqp://usr:passw@addr:5672/virtual-host)
-	SLACK_URLD: which address to be sent
+	KAFKA_VERSION : kafka version (ex: 2.0.0)
+	RABBIT_ADDRESS : rabbit address (ex: amqp://usr:passw@addr:5672/virtual-host)
+	SLACK_URL: which address to be sent
 	SLACK_USERNAME : which user to be sent
 	SLACK_CHANNEL : which channel to be sent
 
